@@ -10,6 +10,7 @@
 
 #include <zephyr/net/socket.h>
 
+#include <mbedtls/pk.h>
 #include <psa/crypto.h>
 
 // #include <mbedtls/ctr_drbg.h>
@@ -17,7 +18,6 @@
 // #include <mbedtls/entropy.h>
 // #include <mbedtls/oid.h>
 
-#include <mbedtls/pk.h>
 // #include <mbedtls/x509_crt.h>
 // #include <mbedtls/x509_csr.h>
 
@@ -52,11 +52,12 @@ const size_t PSA_KEY_BITS = 256;
 
 astarte_result_t astarte_crypto_create_key(unsigned char *privkey_pem, size_t privkey_pem_size)
 {
+    ASTARTE_LOG_INF("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
     astarte_result_t ares = ASTARTE_RESULT_MBEDTLS_ERROR;
-//     if (privkey_pem_size < ASTARTE_CRYPTO_PRIVKEY_BUFFER_SIZE) {
-//         ASTARTE_LOG_ERR("Insufficient output buffer size for client private key.");
-//         return ASTARTE_RESULT_INVALID_PARAM;
-//     }
+    if (privkey_pem_size < ASTARTE_CRYPTO_PRIVKEY_BUFFER_SIZE) {
+        ASTARTE_LOG_ERR("Insufficient output buffer size for client private key.");
+        return ASTARTE_RESULT_INVALID_PARAM;
+    }
 
     // initialize PSA
     psa_status_t psa_ret = psa_crypto_init();
@@ -113,25 +114,25 @@ astarte_result_t astarte_crypto_create_key(unsigned char *privkey_pem, size_t pr
 //         goto exit;
 //     }
 
-    mbedtls_pk_context *key_ctx;
-    mbedtls_pk_init(key_ctx);
-    int pk_ret = mbedtls_pk_copy_from_psa(*key_id, key_ctx);
+    mbedtls_pk_context key_ctx;
+    mbedtls_pk_init(&key_ctx);
+    int pk_ret = mbedtls_pk_copy_from_psa(*key_id, &key_ctx);
     if(pk_ret != 0){
         ASTARTE_LOG_ERR("mbedtls_pk_copy_from_psa returned %d", pk_ret);
         goto exit;
     }
 
-//     ASTARTE_LOG_DBG("Key succesfully generated");
+    ASTARTE_LOG_DBG("Key succesfully generated");
 
-//     ret = mbedtls_pk_write_key_pem(&key, privkey_pem, privkey_pem_size);
-//     if (ret != 0) {
-//         ASTARTE_LOG_ERR("mbedtls_pk_write_key_pem returned %d", ret);
-//         goto exit;
-//     }
+    pk_ret = mbedtls_pk_write_key_pem(&key_ctx, privkey_pem, privkey_pem_size);
+    if (pk_ret != 0) {
+        ASTARTE_LOG_ERR("mbedtls_pk_write_key_pem returned %d", pk_ret);
+        goto exit;
+    }
 
-//     ASTARTE_LOG_DBG("%.*s", strlen((char *) privkey_pem), privkey_pem);
+    ASTARTE_LOG_DBG("%.*s", strlen((char *) privkey_pem), privkey_pem);
 
-//     ares = ASTARTE_RESULT_OK;
+    ares = ASTARTE_RESULT_OK;
 
 exit:
 
@@ -146,7 +147,7 @@ exit:
         }
     }
 
-    mbedtls_pk_free(key_ctx);
+    mbedtls_pk_free(&key_ctx);
 
     return ares;
 }
