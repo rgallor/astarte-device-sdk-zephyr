@@ -295,6 +295,7 @@ astarte_result_t astarte_pairing_get_client_certificate(int32_t timeout_ms, cons
     }
 
     // Step 2: create a private key and a CSR
+    // TODO: can we store the PSA key and retrieve the PEM key when needed?
     ares = astarte_crypto_create_key(client_crt->privkey_pem, ARRAY_SIZE(client_crt->privkey_pem));
     if (ares != ASTARTE_RESULT_OK) {
         ASTARTE_LOG_ERR("Failed in creating a private key.");

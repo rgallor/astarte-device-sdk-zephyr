@@ -24,6 +24,7 @@
  */
 typedef struct
 {
+    // TODO: change and store the PSA key, from which calculate the PEM file when needed
     /** @brief Buffer containing the private key bound to the client certificate (PEM format). */
     char privkey_pem[ASTARTE_CRYPTO_PRIVKEY_BUFFER_SIZE];
     /** @brief Buffer containing the client certificate (PEM format). */

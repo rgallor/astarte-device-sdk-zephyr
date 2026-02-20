@@ -82,7 +82,7 @@ astarte_result_t astarte_crypto_create_key(unsigned char *privkey_pem, size_t pr
         goto exit;
     }
 
-    mbedtls_pk_context key_ctx;
+    mbedtls_pk_context key_ctx = {0};
     mbedtls_pk_init(&key_ctx);
     int pk_ret = mbedtls_pk_copy_from_psa(key_id, &key_ctx);
     if(pk_ret != 0){
@@ -119,18 +119,34 @@ astarte_result_t astarte_crypto_create_csr(
     const unsigned char *privkey_pem, unsigned char *csr_pem, size_t csr_pem_size)
 {
     astarte_result_t ares = ASTARTE_RESULT_MBEDTLS_ERROR;
-//     if (csr_pem_size < ASTARTE_CRYPTO_CSR_BUFFER_SIZE) {
-//         ASTARTE_LOG_ERR("Insufficient output buffer size for certificate signing request.");
-//         return ASTARTE_RESULT_INVALID_PARAM;
-//     }
+    if (csr_pem_size < ASTARTE_CRYPTO_CSR_BUFFER_SIZE) {
+        ASTARTE_LOG_ERR("Insufficient output buffer size for certificate signing request.");
+        return ASTARTE_RESULT_INVALID_PARAM;
+    }
 
-//     mbedtls_pk_context key = { 0 };
-//     mbedtls_x509write_csr req = { 0 };
+    // initialize PSA
+    psa_status_t psa_ret = psa_crypto_init();
+    if(psa_ret != PSA_SUCCESS) {
+        ASTARTE_LOG_ERR("psa_crypto_init returned %d", psa_ret);
+        return ASTARTE_RESULT_MBEDTLS_ERROR;
+    }
+
+    mbedtls_pk_context key_ctx = {0};
+    mbedtls_pk_init(&key_ctx);
+    int pk_ret = mbedtls_pk_parse_key(&key_ctx, privkey_pem, strlen(privkey_pem), NULL, NULL);
+    if(pk_ret != 0){
+        ASTARTE_LOG_ERR("mbedtls_pk_copy_from_psa returned %d", pk_ret);
+        goto exit;
+    }
+
+    // TODO: enable kconfig options for X509 if needed
+    mbedtls_x509write_csr csr_ctx = { 0 };
+    mbedtls_x509write_csr_init(&csr_ctx);
+
 //     mbedtls_entropy_context entropy = { 0 };
 //     mbedtls_ctr_drbg_context ctr_drbg = { 0 };
 //     const char *pers = "astarte_credentials_create_csr";
 
-//     mbedtls_x509write_csr_init(&req);
 //     mbedtls_pk_init(&key);
 //     mbedtls_ctr_drbg_init(&ctr_drbg);
 //     mbedtls_entropy_init(&entropy);
@@ -177,12 +193,13 @@ astarte_result_t astarte_crypto_create_csr(
 
 //     ares = ASTARTE_RESULT_OK;
 
-// exit:
+exit:
 
 //     mbedtls_x509write_csr_free(&req);
-//     mbedtls_pk_free(&key);
 //     mbedtls_ctr_drbg_free(&ctr_drbg);
 //     mbedtls_entropy_free(&entropy);
+
+    mbedtls_pk_free(&key_ctx);
 
     return ares;
 }
