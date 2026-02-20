@@ -52,7 +52,6 @@ const size_t PSA_KEY_BITS = 256;
 
 astarte_result_t astarte_crypto_create_key(unsigned char *privkey_pem, size_t privkey_pem_size)
 {
-    ASTARTE_LOG_INF("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
     astarte_result_t ares = ASTARTE_RESULT_MBEDTLS_ERROR;
     if (privkey_pem_size < ASTARTE_CRYPTO_PRIVKEY_BUFFER_SIZE) {
         ASTARTE_LOG_ERR("Insufficient output buffer size for client private key.");
@@ -66,57 +65,26 @@ astarte_result_t astarte_crypto_create_key(unsigned char *privkey_pem, size_t pr
         return ASTARTE_RESULT_MBEDTLS_ERROR;
     }
 
-    mbedtls_svc_key_id_t *key_id = PSA_KEY_ID_NULL;
-
-//     mbedtls_pk_context key = { 0 };
-//     mbedtls_entropy_context entropy = { 0 };
-//     mbedtls_ctr_drbg_context ctr_drbg = { 0 };
-//     const char *pers = "astarte_credentials_create_key";
-
-//     mbedtls_ctr_drbg_init(&ctr_drbg);
-//     mbedtls_pk_init(&key);
-
-//     // entropy initialization is automatically handled by PSA
-//     // mbedtls_entropy_init(&entropy);
-
-//     ASTARTE_LOG_DBG("Initializing entropy");
-//     int ret = mbedtls_ctr_drbg_seed(
-//         &ctr_drbg, mbedtls_entropy_func, &entropy, (const unsigned char *) pers, strlen(pers));
-//     if (ret != 0) {
-//         ASTARTE_LOG_ERR("mbedtls_ctr_drbg_seed returned %d", ret);
-//         goto exit;
-//     }
+    mbedtls_svc_key_id_t key_id = PSA_KEY_ID_NULL;
 
     ASTARTE_LOG_DBG("Generating the EC key (using curve secp256r1)");
 
     psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
+    // psa_set_key_algorithm(&attributes, PSA_ALG_ECDSA(PSA_ALG_ANY_HASH));
     psa_set_key_algorithm(&attributes, PSA_ECC_FAMILY_SECP_R1);
-    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_SIGN_MESSAGE | PSA_KEY_USAGE_EXPORT);
+    psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_SIGN_HASH | PSA_KEY_USAGE_SIGN_MESSAGE | PSA_KEY_USAGE_EXPORT);
     psa_set_key_type(&attributes, PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1));
     psa_set_key_bits(&attributes, PSA_KEY_BITS);
 
-    psa_ret = psa_generate_key(&attributes, key_id);
+    psa_ret = psa_generate_key(&attributes, &key_id);
     if(psa_ret != PSA_SUCCESS) {
         ASTARTE_LOG_ERR("psa_generate_key returned %d", psa_ret);
         goto exit;
     }
 
-//     ret = mbedtls_pk_setup(&key, mbedtls_pk_info_from_type(MBEDTLS_PK_ECKEY));
-//     if (ret != 0) {
-//         ASTARTE_LOG_ERR("mbedtls_pk_setup returned %d", ret);
-//         goto exit;
-//     }
-
-//     ret = mbedtls_ecp_gen_key(
-//         MBEDTLS_ECP_DP_SECP256R1, mbedtls_pk_ec(key), mbedtls_ctr_drbg_random, &ctr_drbg);
-//     if (ret != 0) {
-//         ASTARTE_LOG_ERR("mbedtls_ecp_gen_key returned %d", ret);
-//         goto exit;
-//     }
-
     mbedtls_pk_context key_ctx;
     mbedtls_pk_init(&key_ctx);
-    int pk_ret = mbedtls_pk_copy_from_psa(*key_id, &key_ctx);
+    int pk_ret = mbedtls_pk_copy_from_psa(key_id, &key_ctx);
     if(pk_ret != 0){
         ASTARTE_LOG_ERR("mbedtls_pk_copy_from_psa returned %d", pk_ret);
         goto exit;
@@ -135,13 +103,8 @@ astarte_result_t astarte_crypto_create_key(unsigned char *privkey_pem, size_t pr
     ares = ASTARTE_RESULT_OK;
 
 exit:
-
-//     mbedtls_pk_free(&key);
-//     mbedtls_ctr_drbg_free(&ctr_drbg);
-//     mbedtls_entropy_free(&entropy);
-
-    if (*key_id != PSA_KEY_ID_NULL) {
-        psa_ret = psa_destroy_key(*key_id);
+    if (key_id != PSA_KEY_ID_NULL) {
+        psa_ret = psa_destroy_key(key_id);
         if (psa_ret != PSA_SUCCESS) {
         ASTARTE_LOG_ERR("psa_destroy_key returned %d", psa_ret);
         }
