@@ -5,6 +5,8 @@
  */
 #include "astarte_device_sdk/device.h"
 
+#include <zephyr/cleanup.h>
+
 #ifdef CONFIG_ASTARTE_DEVICE_SDK_PERMANENT_STORAGE
 #include "storage/core.h"
 #include "storage/prop.h"

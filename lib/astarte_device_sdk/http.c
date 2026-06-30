@@ -6,6 +6,7 @@
 
 #include "http.h"
 
+#include <zephyr/cleanup.h>
 #include <zephyr/kernel.h>
 #include <zephyr/net/dns_resolve.h>
 #include <zephyr/net/http/client.h>
@@ -309,6 +310,7 @@ static astarte_result_t astarte_http_do_request(enum http_method method, int32_t
     struct http_request req = { 0 };
     size_t buf_size = CONFIG_ASTARTE_DEVICE_SDK_ADVANCED_HTTP_RCV_BUFFER_SIZE;
     uint8_t *recv_buf = (uint8_t *) astarte_calloc(buf_size, sizeof(uint8_t));
+    scope_defer(astarte_free)(recv_buf);
     if (recv_buf == NULL) {
         ASTARTE_LOG_ERR("Out of memory %s: %d", __FILE__, __LINE__);
         zsock_close(sock);
@@ -346,13 +348,11 @@ static astarte_result_t astarte_http_do_request(enum http_method method, int32_t
         ASTARTE_LOG_ERR("HTTP request failed (http_client_req code: %d, context flag ok: %d)",
             http_rc, ctx->request_ok);
         zsock_close(sock);
-        astarte_free(recv_buf);
         return ASTARTE_RESULT_HTTP_REQUEST_ERROR;
     }
 
     ASTARTE_LOG_DBG("HTTP request completed successfully. Closing socket %d.", sock);
     zsock_close(sock);
 
-    astarte_free(recv_buf);
     return ASTARTE_RESULT_OK;
 }

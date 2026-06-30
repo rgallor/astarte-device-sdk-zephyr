@@ -17,6 +17,9 @@
 
 #include <stddef.h>
 
+#include <zephyr/cleanup.h>
+#include <zephyr/sys/util.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -57,6 +60,8 @@ void *astarte_realloc(void *ptr, size_t size);
  * @param[in] ptr Pointer to the memory block to be freed. If NULL, no operation is performed.
  */
 void astarte_free(void *ptr);
+
+SCOPE_DEFER_DEFINE(astarte_free, void *);
 
 #ifdef __cplusplus
 }
