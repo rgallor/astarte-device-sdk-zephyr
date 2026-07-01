@@ -217,11 +217,12 @@ static int cmd_send_object(const struct shell *shell, size_t argc, char **argv)
 {
     ARG_UNUSED(shell);
 
-    int return_code = 1;
     char *path = NULL;
+    scope_defer(astarte_free)(path);
     byte_array_t value = { 0 };
-    astarte_object_entry_t *entries = NULL;
-    size_t entries_length = 0;
+    scope_defer(astarte_free)((void *) value.buf);
+    astarte_object_entries_ctx_t cleanup_ctx = { .entries = NULL, .length = 0 };
+    scope_defer(astarte_cleanup_object_entries)(&cleanup_ctx);
 
     LOG_INF("Send object command handler");
 
@@ -230,35 +231,32 @@ static int cmd_send_object(const struct shell *shell, size_t argc, char **argv)
 
     // Second parameter is the interface name
     const astarte_interface_t *interface = shell_helpers_next_interface_param(&argv, &argc);
-    CHECK_GOTO(!interface, cleanup, "Invalid interface name passed");
+    CHECK_HALT(!interface, "Invalid interface name passed");
 
     // Third parameter is the path
     path = shell_helpers_next_alloc_string_param(&argv, &argc);
-    CHECK_GOTO(!path, cleanup, "Invalid path parameter passed");
+    CHECK_HALT(!path, "Invalid path parameter passed");
 
     // Fourth parameter is the payload
     value = shell_helpers_next_alloc_base64_param(&argv, &argc);
-    CHECK_GOTO(value.len == 0, cleanup, "Invalid object parameter passed");
-    CHECK_GOTO(
-        parse_bson_to_alloc_astarte_object(interface, path, &value, &entries, &entries_length) != 0,
-        cleanup, "Could not parse the BSON to an Astarte object");
+    CHECK_HALT(value.len == 0, "Invalid object parameter passed");
+    CHECK_HALT(parse_bson_to_alloc_astarte_object(
+                   interface, path, &value, &cleanup_ctx.entries, &cleanup_ctx.length)
+            != 0,
+        "Could not parse the BSON to an Astarte object");
 
     // Fifth parameter is the timestamp
     optional_int64_t timestamp = shell_helpers_next_timestamp_param(&argv, &argc);
 
     // Set the property using the Astarte device
-    CHECK_GOTO(device_send_object(interface->name, path, entries, entries_length, timestamp) != 0,
-        cleanup, "Failed to send object to astarte");
+    CHECK_HALT(device_send_object(
+                   interface->name, path, cleanup_ctx.entries, cleanup_ctx.length, timestamp)
+            != 0,
+        "Failed to send object to astarte");
 
     LOG_INF("Object datastream sent");
-    return_code = 0;
 
-cleanup:
-    astarte_object_entries_destroy_deserialized(entries, entries_length);
-    astarte_free((void *) value.buf);
-    astarte_free(path);
-
-    return return_code;
+    return 0;
 }
 
 static int cmd_send_property_set(const struct shell *shell, size_t argc, char **argv)
@@ -389,9 +387,11 @@ static int cmd_expect_object(const struct shell *shell, size_t argc, char **argv
     ARG_UNUSED(shell);
 
     char *path = NULL;
+    scope_defer(astarte_free)(path);
     byte_array_t value = { 0 };
-    astarte_object_entry_t *entries = NULL;
-    size_t entries_length = 0;
+    scope_defer(astarte_free)((void *) value.buf);
+    astarte_object_entries_ctx_t cleanup_ctx = { .entries = NULL, .length = 0 };
+    scope_defer(astarte_cleanup_object_entries)(&cleanup_ctx);
 
     LOG_INF("Expect object command handler");
 
@@ -400,18 +400,19 @@ static int cmd_expect_object(const struct shell *shell, size_t argc, char **argv
 
     // Second parameter is the interface name
     const astarte_interface_t *interface = shell_helpers_next_interface_param(&argv, &argc);
-    CHECK_GOTO(!interface, error, "Invalid interface name passed");
+    CHECK_HALT(!interface, "Invalid interface name passed");
 
     // Third parameter is the path
     path = shell_helpers_next_alloc_string_param(&argv, &argc);
-    CHECK_GOTO(!path, error, "Invalid path parameter passed");
+    CHECK_HALT(!path, "Invalid path parameter passed");
 
     // Fourth parameter is the payload
     value = shell_helpers_next_alloc_base64_param(&argv, &argc);
-    CHECK_GOTO(value.len == 0, error, "Invalid object parameter passed");
-    CHECK_GOTO(
-        parse_bson_to_alloc_astarte_object(interface, path, &value, &entries, &entries_length) != 0,
-        error, "Could not parse the BSON to an Astarte object");
+    CHECK_HALT(value.len == 0, "Invalid object parameter passed");
+    CHECK_HALT(parse_bson_to_alloc_astarte_object(
+                   interface, path, &value, &cleanup_ctx.entries, &cleanup_ctx.length)
+            != 0,
+        "Could not parse the BSON to an Astarte object");
 
     // Fifth parameter is the timestamp
     optional_int64_t timestamp = shell_helpers_next_timestamp_param(&argv, &argc);
@@ -420,19 +421,14 @@ static int cmd_expect_object(const struct shell *shell, size_t argc, char **argv
     // NOTE: The bson parser perform only a shallow copy of some strings, so we need to pass
     // ownership of the value buffer to the expected data list, so it can be freed when the expected
     // data is cleared.
-    CHECK_GOTO(data_add_object(interface, path, &value, entries, entries_length, &timestamp) != 0,
-        error, "Could not add object to expected data");
+    CHECK_HALT(data_add_object(
+                   interface, path, &value, cleanup_ctx.entries, cleanup_ctx.length, &timestamp)
+            != 0,
+        "Could not add object to expected data");
 
     LOG_INF("Object added to the expected list.");
 
     return 0;
-
-error:
-    astarte_free(path);
-    astarte_free((void *) value.buf);
-    astarte_object_entries_destroy_deserialized(entries, entries_length);
-
-    return 1;
 }
 
 static int cmd_expect_property_set(const struct shell *shell, size_t argc, char **argv)
