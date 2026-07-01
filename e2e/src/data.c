@@ -278,19 +278,20 @@ int data_expected_object(const char *interface_name, const char *path,
     map_value_t *map_value = UINT_TO_POINTER(map_value_p);
 
     message_t *expected = spsc_peek(&map_value->messages);
-    CHECK_RET_1(expected == NULL, "No more expected messages");
+    astarte_object_entries_ctx_t cleanup_ctx
+        = { .entries = expected->entries, .length = expected->entries_length };
+    scope_defer(astarte_cleanup_object_entries)(&cleanup_ctx);
 
+    CHECK_RET_1(expected == NULL, "No more expected messages");
     CHECK_RET_1(expected->type != OBJECT, "Expected an object but got a different message type");
     CHECK_RET_1(strcmp(expected->path, path) != 0, "Received path does not match expected one");
-
     // Compare the expected message payload with the received one
     CHECK_RET_1(!astarte_objects_are_equal(
                     expected->entries, expected->entries_length, entries, entries_length),
         "Unexpected element received");
 
-    astarte_free((char *) expected->path);
-    astarte_free((void *) expected->raw_bson_data.buf);
-    astarte_object_entries_destroy_deserialized(expected->entries, expected->entries_length);
+    scope_defer(astarte_free)((void *) expected->path);
+    scope_defer(astarte_free)((void *) expected->raw_bson_data.buf);
 
     (void *) spsc_consume(&map_value->messages);
     spsc_release(&map_value->messages);
