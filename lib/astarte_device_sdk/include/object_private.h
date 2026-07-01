@@ -12,10 +12,12 @@
  * @brief Private definitions for Astarte object data types
  */
 
-#include "astarte_device_sdk/object.h"
+#include <zephyr/cleanup.h>
+#include <zephyr/sys/util.h>
 
 #include "astarte_device_sdk/astarte.h"
 #include "astarte_device_sdk/interface.h"
+#include "astarte_device_sdk/object.h"
 #include "bson/deserializer.h"
 #include "bson/serializer.h"
 
@@ -67,6 +69,21 @@ astarte_result_t astarte_object_entries_deserialize(astarte_bson_element_t bson_
  */
 void astarte_object_entries_destroy_deserialized(
     astarte_object_entry_t *entries, size_t entries_length);
+
+typedef struct
+{
+    astarte_object_entry_t *entries;
+    size_t length;
+} astarte_object_entries_ctx_t;
+
+static inline void astarte_cleanup_object_entries(astarte_object_entries_ctx_t *ctx)
+{
+    if (ctx && ctx->entries) {
+        astarte_object_entries_destroy_deserialized(ctx->entries, ctx->length);
+    }
+}
+
+SCOPE_DEFER_DEFINE(astarte_cleanup_object_entries, astarte_object_entries_ctx_t *);
 
 #ifdef __cplusplus
 }
