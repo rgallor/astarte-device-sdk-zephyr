@@ -82,49 +82,49 @@ static astarte_result_t refresh_client_cert_handler(astarte_mqtt_t *astarte_mqtt
  *         Global functions definitions         *
  ***********************************************/
 
-struct foo
-{
-    void *bytes;
-};
+// struct foo
+// {
+//     void *bytes;
+// };
 
-static inline struct foo *init_foo(int bytes)
-{
-    struct foo *ptr = (struct foo *) astarte_calloc(1, sizeof(struct foo));
-    if (ptr) {
-        void *value = astarte_calloc(1, bytes);
-        ptr->bytes = value;
-        ASTARTE_LOG_INF("SUCCESSFULLY INITIALIZED CLEANUP SCOPED VAR");
-        return ptr;
-    }
+// static inline struct foo *init_foo(int bytes)
+// {
+//     struct foo *ptr = (struct foo *) astarte_calloc(1, sizeof(struct foo));
+//     if (ptr) {
+//         void *value = astarte_calloc(1, bytes);
+//         ptr->bytes = value;
+//         ASTARTE_LOG_INF("SUCCESSFULLY INITIALIZED CLEANUP SCOPED VAR");
+//         return ptr;
+//     }
 
-    ASTARTE_LOG_ERR("FAILED TO INITIALIZE CLEANUP SCOPED VAR");
-    return NULL;
-}
+//     ASTARTE_LOG_ERR("FAILED TO INITIALIZE CLEANUP SCOPED VAR");
+//     return NULL;
+// }
 
-static inline void exit_foo(struct foo *ptr)
-{
-    if (ptr == NULL) {
-        ASTARTE_LOG_INF("CLEANUP SCOPED VAR ALREADY NULL");
-        return;
-    }
+// static inline void exit_foo(struct foo *ptr)
+// {
+//     if (ptr == NULL) {
+//         ASTARTE_LOG_INF("CLEANUP SCOPED VAR ALREADY NULL");
+//         return;
+//     }
 
-    ASTARTE_LOG_INF("CLEANING UP CLEANUP SCOPED VAR");
-    astarte_free(ptr->bytes);
-    astarte_free((void *) ptr);
-}
+//     ASTARTE_LOG_INF("CLEANING UP CLEANUP SCOPED VAR");
+//     astarte_free(ptr->bytes);
+//     astarte_free((void *) ptr);
+// }
 
-SCOPE_VAR_DEFINE(scoped_type, struct foo *, exit_foo(_T), init_foo(bytes), int bytes);
+// SCOPE_VAR_DEFINE(scoped_type, struct foo *, exit_foo(_T), init_foo(bytes), int bytes);
 
 astarte_result_t astarte_device_new(astarte_device_config_t *cfg, astarte_device_handle_t *device)
 {
     astarte_result_t ares = ASTARTE_RESULT_OK;
     astarte_device_handle_t handle = NULL;
 
-    scope_var(scoped_type, xxx)(1024);
-    if (xxx == NULL) {
-        ares = ASTARTE_RESULT_INVALID_PARAM;
-        goto failure;
-    }
+    // scope_var(scoped_type, xxx)(1024);
+    // if (xxx == NULL) {
+    //     ares = ASTARTE_RESULT_INVALID_PARAM;
+    //     goto failure;
+    // }
 
     ASTARTE_LOG_DBG("Creating a new device instance");
 
