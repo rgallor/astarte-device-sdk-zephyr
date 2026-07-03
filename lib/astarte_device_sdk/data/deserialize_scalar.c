@@ -17,6 +17,41 @@
 ASTARTE_LOG_MODULE_DECLARE(data_deserialize, CONFIG_ASTARTE_DEVICE_SDK_DATA_LOG_LEVEL);
 
 /************************************************
+ *        Defines, constants and typedef        *
+ ***********************************************/
+
+// Context to hold the binaryblob
+typedef struct
+{
+    uint8_t *deserialized;
+} binblob_cleanup_ctx_t;
+
+// Context to hold the string
+typedef struct
+{
+    char *deserialized;
+} string_cleanup_ctx_t;
+
+// Binary blob cleanup function
+static void cleanup_binblob(binblob_cleanup_ctx_t *ctx)
+{
+    if (ctx && ctx->deserialized) {
+        astarte_free(ctx->deserialized);
+    }
+}
+
+// string cleanup function
+static void cleanup_string(string_cleanup_ctx_t *ctx)
+{
+    if (ctx && ctx->deserialized) {
+        astarte_free(ctx->deserialized);
+    }
+}
+
+SCOPE_DEFER_DEFINE(cleanup_binblob, binblob_cleanup_ctx_t *);
+SCOPE_DEFER_DEFINE(cleanup_string, string_cleanup_ctx_t *);
+
+/************************************************
  *         Static functions declaration         *
  ***********************************************/
 
@@ -111,52 +146,49 @@ astarte_result_t astarte_data_deserialize_scalar(
 static astarte_result_t deserialize_binaryblob(
     astarte_bson_element_t bson_elem, astarte_data_t *data)
 {
-    astarte_result_t ares = ASTARTE_RESULT_OK;
-    uint8_t *dyn_deserialized = NULL;
+    binblob_cleanup_ctx_t ctx = { .deserialized = NULL };
+    scope_defer(cleanup_binblob)(&ctx);
 
     uint32_t deserialized_len = 0;
     const uint8_t *deserialized
         = astarte_bson_deserializer_element_to_binary(bson_elem, &deserialized_len);
 
-    dyn_deserialized = astarte_calloc(deserialized_len, sizeof(uint8_t));
-    if (!dyn_deserialized) {
+    ctx.deserialized = astarte_calloc(deserialized_len, sizeof(uint8_t));
+    if (!ctx.deserialized) {
         ASTARTE_LOG_ERR("Out of memory %s: %d", __FILE__, __LINE__);
-        ares = ASTARTE_RESULT_OUT_OF_MEMORY;
-        goto failure;
+        return ASTARTE_RESULT_OUT_OF_MEMORY;
     }
 
-    memcpy(dyn_deserialized, deserialized, deserialized_len);
+    memcpy(ctx.deserialized, deserialized, deserialized_len);
     // NOLINTNEXTLINE(clang-analyzer-unix.Malloc)
-    *data = astarte_data_from_binaryblob((const void *) dyn_deserialized, deserialized_len);
-    return ares;
+    *data = astarte_data_from_binaryblob((const void *) ctx.deserialized, deserialized_len);
 
-failure:
-    astarte_free(dyn_deserialized);
-    return ares;
+    // Disarm the cleanup to prevent deallocation
+    ctx.deserialized = NULL;
+
+    return ASTARTE_RESULT_OK;
 }
 
 static astarte_result_t deserialize_string(astarte_bson_element_t bson_elem, astarte_data_t *data)
 {
-    astarte_result_t ares = ASTARTE_RESULT_OK;
-    char *dyn_deserialized = NULL;
+    string_cleanup_ctx_t ctx = { .deserialized = NULL };
+    scope_defer(cleanup_string)(&ctx);
 
     uint32_t deserialized_len = 0;
     const char *deserialized
         = astarte_bson_deserializer_element_to_string(bson_elem, &deserialized_len);
 
-    dyn_deserialized = astarte_calloc(deserialized_len + 1, sizeof(char));
-    if (!dyn_deserialized) {
+    ctx.deserialized = astarte_calloc(deserialized_len + 1, sizeof(char));
+    if (!ctx.deserialized) {
         ASTARTE_LOG_ERR("Out of memory %s: %d", __FILE__, __LINE__);
-        ares = ASTARTE_RESULT_OUT_OF_MEMORY;
-        goto failure;
+        return ASTARTE_RESULT_OUT_OF_MEMORY;
     }
 
-    strncpy(dyn_deserialized, deserialized, deserialized_len);
+    strncpy(ctx.deserialized, deserialized, deserialized_len);
     // NOLINTNEXTLINE(clang-analyzer-unix.Malloc)
-    *data = astarte_data_from_string(dyn_deserialized);
-    return ares;
+    *data = astarte_data_from_string(ctx.deserialized);
 
-failure:
-    astarte_free(dyn_deserialized);
-    return ares;
+    ctx.deserialized = NULL;
+
+    return ASTARTE_RESULT_OK;
 }
