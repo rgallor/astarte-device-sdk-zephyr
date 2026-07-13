@@ -12,7 +12,9 @@
 
 #ifdef CONFIG_ASTARTE_DEVICE_SDK_ENABLE_HEAP
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+/** @cond INTERNAL_HIDDEN */
 K_HEAP_DEFINE(astarte_sdk_heap, CONFIG_ASTARTE_DEVICE_SDK_HEAP_SIZE);
+/** @endcond */
 #endif
 
 void *astarte_malloc(size_t size)

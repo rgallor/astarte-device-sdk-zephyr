@@ -20,19 +20,27 @@ ASTARTE_LOG_MODULE_DECLARE(data_deserialize, CONFIG_ASTARTE_DEVICE_SDK_DATA_LOG_
  *        Defines, constants and typedef        *
  ***********************************************/
 
-// Context to hold the binaryblob
+/** @brief Context to hold the binary blob for cleanup. */
 typedef struct
 {
+    /** @cond INTERNAL_HIDDEN */
     uint8_t *deserialized;
+    /** @endcond */
 } binblob_cleanup_ctx_t;
 
-// Context to hold the string
+/** @brief Context to hold the string for cleanup. */
 typedef struct
 {
+    /** @cond INTERNAL_HIDDEN */
     char *deserialized;
+    /** @endcond */
 } string_cleanup_ctx_t;
 
-// Binary blob cleanup function
+/**
+ * @brief Binary blob cleanup function
+ *
+ * @param[in] ctx Pointer to the binary blob cleanup context.
+ */
 static void cleanup_binblob(binblob_cleanup_ctx_t *ctx)
 {
     if (ctx && ctx->deserialized) {
@@ -40,7 +48,11 @@ static void cleanup_binblob(binblob_cleanup_ctx_t *ctx)
     }
 }
 
-// string cleanup function
+/**
+ * @brief String cleanup function
+ *
+ * @param[in] ctx Pointer to the string cleanup context.
+ */
 static void cleanup_string(string_cleanup_ctx_t *ctx)
 {
     if (ctx && ctx->deserialized) {

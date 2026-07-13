@@ -61,7 +61,9 @@ void *astarte_realloc(void *ptr, size_t size);
  */
 void astarte_free(void *ptr);
 
+/** @cond INTERNAL_HIDDEN */
 SCOPE_DEFER_DEFINE(astarte_free, void *);
+/** @endcond */
 
 #ifdef __cplusplus
 }

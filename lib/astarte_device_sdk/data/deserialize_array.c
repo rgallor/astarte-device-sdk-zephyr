@@ -74,22 +74,30 @@ static inline int64_t extract_int64(astarte_bson_element_t elem)
         : astarte_bson_deserializer_element_to_int64(elem);
 }
 
-// Context to hold both arrays and the current item count
+/** @brief Context to hold both arrays and the current item count for binary blobs cleanup. */
 typedef struct
 {
+    /** @cond INTERNAL_HIDDEN */
     uint8_t **array;
     size_t *sizes;
     size_t count;
+    /** @endcond */
 } binblob_array_cleanup_ctx_t;
 
-// Context to hold the string array and the item count
+/** @brief Context to hold the string array and the item count for strings cleanup. */
 typedef struct
 {
+    /** @cond INTERNAL_HIDDEN */
     char **array;
     size_t count;
+    /** @endcond */
 } string_array_cleanup_ctx_t;
 
-// Binary blob array cleanup function
+/**
+ * @brief Binary blob array cleanup function
+ *
+ * @param[in] ctx Pointer to the binary blob array cleanup context.
+ */
 static void cleanup_binblob_array(binblob_array_cleanup_ctx_t *ctx)
 {
     if (ctx) {
@@ -105,7 +113,11 @@ static void cleanup_binblob_array(binblob_array_cleanup_ctx_t *ctx)
     }
 }
 
-// String array cleanup function
+/**
+ * @brief String array cleanup function
+ *
+ * @param[in] ctx Pointer to the string array cleanup context.
+ */
 static void cleanup_string_array(string_array_cleanup_ctx_t *ctx)
 {
     if (ctx && ctx->array) {

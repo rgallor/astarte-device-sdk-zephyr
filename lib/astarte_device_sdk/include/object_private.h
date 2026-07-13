@@ -70,12 +70,20 @@ astarte_result_t astarte_object_entries_deserialize(astarte_bson_element_t bson_
 void astarte_object_entries_destroy_deserialized(
     astarte_object_entry_t *entries, size_t entries_length);
 
+/** @brief Context to hold object entries for cleanup. */
 typedef struct
 {
+    /** @cond INTERNAL_HIDDEN */
     astarte_object_entry_t *entries;
     size_t length;
+    /** @endcond */
 } astarte_object_entries_ctx_t;
 
+/**
+ * @brief Object entries cleanup function
+ *
+ * @param[in] ctx Pointer to the object entries cleanup context.
+ */
 static inline void astarte_cleanup_object_entries(astarte_object_entries_ctx_t *ctx)
 {
     if (ctx && ctx->entries) {
@@ -83,7 +91,9 @@ static inline void astarte_cleanup_object_entries(astarte_object_entries_ctx_t *
     }
 }
 
+/** @cond INTERNAL_HIDDEN */
 SCOPE_DEFER_DEFINE(astarte_cleanup_object_entries, astarte_object_entries_ctx_t *);
+/** @endcond */
 
 #ifdef __cplusplus
 }
